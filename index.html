@@ -5,353 +5,240 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>雙人合作生存遊戲</title>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-color: #f8fafc;
-            --primary-color: #38bdf8;
-            --accent-color: #f43f5e;
-            --border-radius: 30px;
-            --skill-radius: 50px;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            width: 100vw;
-            height: 100vh;
+        body, html {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
+            background-color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #f8fafc;
+        }
+
+        /* 主選單畫面 */
+        #menuContainer {
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            height: 100vh;
+            padding: 20px;
         }
-
-        .glass-container {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            width: 90%;
-            max-width: 450px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
-            z-index: 20;
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
         }
-
-        .glass-container h1 {
-            margin-bottom: 30px;
-            font-size: 1.8rem;
+        h1 {
             text-align: center;
-            background: linear-gradient(to right, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 24px;
+            margin-bottom: 24px;
+            color: #38bdf8;
         }
-
-        .menu-box {
+        .input-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        input {
             width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 15px 20px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .input-group input:focus {
-            border-color: var(--primary-color);
-        }
-
-        .glass-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-            border: none;
-            border-radius: var(--border-radius);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+            background: #0f172a;
             color: #fff;
-            font-size: 1rem;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #38bdf8;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
-            transition: transform 0.2s, filter 0.2s;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 8px;
         }
-
-        .glass-btn:hover {
-            filter: brightness(1.1);
-        }
-
-        .glass-btn:active {
+        .btn:active {
             transform: scale(0.98);
         }
-
-        .divider {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.9rem;
+        .btn-primary {
+            background: #0284c7;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0369a1;
+        }
+        .btn-secondary {
+            background: #334155;
+            color: #f8fafc;
+        }
+        .btn-secondary:hover {
+            background: #475569;
         }
 
+        /* 遊戲主畫面 */
         #gameContainer {
+            display: none;
             position: relative;
             width: 100vw;
             height: 100vh;
-            display: none;
         }
-
         canvas {
             display: block;
             width: 100%;
             height: 100%;
         }
 
+        /* 抬頭顯示器 (HUD) */
         #hud {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
             pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-            box-sizing: border-box;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .hud-item {
+            background: rgba(15, 23, 42, 0.65);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
         }
 
-        .hud-top {
-            display: flex;
-            justify-content: space-around;
-            background: var(--glass-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: 10px 20px;
-            pointer-events: auto;
-            font-size: 0.9rem;
-            font-weight: bold;
-        }
-
-        .hud-boss {
+        /* 技能按鈕區域 (Player 1) */
+        #skillHud {
             position: absolute;
-            top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40%;
-            max-width: 400px;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: 10px;
-            text-align: center;
+            bottom: 24px;
+            left: 0;
+            right: 0;
+            display: none;
+            justify-content: center;
+            gap: 16px;
+            padding: 0 16px;
         }
-
-        .boss-name {
-            font-size: 0.8rem;
-            margin-bottom: 5px;
-            color: var(--accent-color);
-        }
-
-        .boss-bar-bg, .hp-bar-bg, .mp-bar-bg {
-            width: 100%;
-            height: 10px;
-            background: rgba(15, 23, 42, 0.8);
-            border-radius: var(--border-radius);
-            overflow: hidden;
-        }
-
-        .boss-bar-fill {
-            width: 100%;
-            height: 100%;
-            background: var(--accent-color);
-            transition: width 0.2s;
-        }
-
-        .hud-bottom {
-            display: flex;
-            justify-content: space-between;
-            pointer-events: auto;
-        }
-
-        .player-hud {
-            background: var(--glass-bg);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: 15px;
-            width: 200px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .p-name {
-            font-size: 0.85rem;
-            font-weight: bold;
-        }
-
-        .hp-bar-fill {
-            width: 100%;
-            height: 100%;
-            background: #22c55e;
-            transition: width 0.2s;
-        }
-
-        .mp-bar-fill {
-            width: 100%;
-            height: 100%;
-            background: #38bdf8;
-            transition: width 0.2s;
-        }
-
-        .skill-hud {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 12px;
-            pointer-events: auto;
-        }
-
         .skill-btn {
-            width: var(--skill-radius);
-            height: var(--skill-radius);
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            color: var(--text-color);
-            font-size: 0.75rem;
-            font-weight: bold;
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid #38bdf8;
+            color: #fff;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             cursor: pointer;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            transition: transform 0.1s, background-color 0.2s;
+            backdrop-filter: blur(4px);
         }
-
         .skill-btn:active {
             transform: scale(0.92);
-            background-color: rgba(56, 189, 248, 0.4);
+            background: #0284c7;
         }
 
-        .glass-overlay {
+        /* 準備與房間提示覆蓋層 */
+        #uiOverlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(10px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-
-        .overlay-content {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: 40px;
-            text-align: center;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            width: 90%;
-            max-width: 400px;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+        }
+        .room-code-display {
+            font-size: 32px;
+            font-weight: bold;
+            color: #38bdf8;
+            letter-spacing: 4px;
+            margin: 12px 0;
         }
     </style>
 </head>
 <body>
 
-    <!-- 主選單區塊 -->
-    <div id="menuContainer" class="glass-container">
-        <h1>雙人合作生存遊戲</h1>
-        <div class="menu-box">
+    <!-- 主選單 -->
+    <div id="menuContainer">
+        <div class="card">
+            <h1>雙人合作生存遊戲</h1>
             <div class="input-group">
-                <input type="text" id="nicknameInput" placeholder="請輸入玩家暱稱" maxlength="10">
+                <label for="nicknameInput">玩家暱稱</label>
+                <input type="text" id="nicknameInput" placeholder="請輸入暱稱" maxlength="10">
             </div>
-            <div class="btn-group">
-                <button id="createRoomBtn" class="glass-btn">建立房間</button>
-            </div>
-            <div class="divider">或</div>
+            <button class="btn btn-primary" id="createRoomBtn">建立房間 (P1 技能位)</button>
+            <div style="text-align: center; margin: 16px 0; color: #64748b; font-size: 14px;">或</div>
             <div class="input-group">
+                <label for="roomCodeInput">房間號碼</label>
                 <input type="text" id="roomCodeInput" placeholder="請輸入5碼房號 (例: AB123)" maxlength="5">
             </div>
-            <div class="btn-group">
-                <button id="joinRoomBtn" class="glass-btn">加入房間</button>
-            </div>
+            <button class="btn btn-secondary" id="joinRoomBtn">加入房間 (P2 駕駛位)</button>
         </div>
     </div>
 
     <!-- 遊戲主畫面 -->
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
+
+        <!-- HUD 資料 -->
         <div id="hud">
-            <div class="hud-top">
-                <div class="hud-item">房號: <span id="hudRoomCode">----</span></div>
-                <div class="hud-item">波數: <span id="hudWave">1</span></div>
-                <div class="hud-item">分數: <span id="hudScore">0</span></div>
-                <div class="hud-item">FPS: <span id="hudFps">60</span></div>
-                <div class="hud-item">Ping: <span id="hudPing">0ms</span></div>
-            </div>
-            <div class="hud-boss" id="hudBossContainer" style="display: none;">
-                <div class="boss-name" id="hudBossName">Boss</div>
-                <div class="boss-bar-bg"><div class="boss-bar-fill" id="hudBossBar"></div></div>
-            </div>
-            <div class="hud-bottom">
-                <div class="player-hud" id="playerHud1">
-                    <div class="p-name" id="hudP1Name">Player 1 (主控/技能)</div>
-                    <div class="hp-bar-bg"><div class="hp-bar-fill" id="hudP1Hp" style="width: 100%;"></div></div>
-                    <div class="mp-bar-bg"><div class="mp-bar-fill" id="hudP1Mp" style="width: 100%;"></div></div>
-                </div>
-                <div class="player-hud" id="playerHud2">
-                    <div class="p-name" id="hudP2Name">Player 2 (駕駛)</div>
-                    <div class="hp-bar-bg"><div class="hp-bar-fill" id="hudP2Hp" style="width: 100%;"></div></div>
-                </div>
-            </div>
-            <div class="skill-hud" id="skillHud" style="display: none;">
-                <button class="skill-btn" id="skill1Btn">火球</button>
-                <button class="skill-btn" id="skill2Btn">鳳仙花</button>
-                <button class="skill-btn" id="skill3Btn">月讀</button>
-                <button class="skill-btn" id="skill4Btn">神威</button>
-                <button class="skill-btn" id="skill5Btn">天照</button>
-            </div>
+            <div class="hud-item">房號: <span id="hudRoomCode">----</span></div>
+            <div class="hud-item">波次: <span id="hudWave">1</span></div>
+            <div class="hud-item">分數: <span id="hudScore">0</span></div>
+            <div class="hud-item"><span id="hudFps">60</span> FPS | <span id="hudPing">0ms</span></div>
         </div>
-        <div id="uiOverlay" class="glass-overlay">
-            <div class="overlay-content" id="overlayContent">
-                <h2>等待玩家加入...</h2>
-                <p>房號：<span id="displayRoomCode"></span></p>
-                <button id="readyBtn" class="glass-btn">準備就緒</button>
-            </div>
+
+        <!-- P1 技能列 -->
+        <div id="skillHud">
+            <button class="skill-btn" id="skill1">⚡</button>
+            <button class="skill-btn" id="skill2">🛡️</button>
+            <button class="skill-btn" id="skill3">💥</button>
+        </div>
+
+        <!-- 準備覆蓋畫面 -->
+        <div id="uiOverlay">
+            <h2 style="font-size: 20px; color: #94a3b8;">等待隊友加入中...</h2>
+            <div class="room-code-display" id="displayRoomCode">-----</div>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">請將上方房號分享給朋友</p>
+            <button class="btn btn-primary" id="readyBtn" style="width: 200px;">準備完成</button>
         </div>
     </div>
 
     <!-- JavaScript 模組 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         // Firebase 專案設定
         const firebaseConfig = {
@@ -366,10 +253,17 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
         const auth = getAuth(app);
+        const db = getDatabase(app);
 
-        // 本地快取
+        // 自動進行匿名登入取得 Firebase Auth 存取權限
+        async function ensureAuth() {
+            if (!auth.currentUser) {
+                await signInAnonymously(auth);
+            }
+        }
+
+        // LocalStorage 快取工具
         const Storage = {
             set(key, value) { localStorage.setItem(key, JSON.stringify(value)); },
             get(key) {
@@ -378,34 +272,34 @@
             }
         };
 
-        // 網路通訊管理
+        // 網路通訊模組
         class Network {
             constructor() { this.roomRef = null; }
             async createRoom(nickname) {
-                await signInAnonymously(auth);
+                await ensureAuth();
                 const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
                 this.roomRef = ref(db, 'games/' + roomCode);
                 await set(this.roomRef, {
                     gameState: { started: false, paused: false, gameOver: false, wave: 1, score: 0, seed: Date.now() },
                     players: {
-                        player1: { uid: 'p1', nickname, role: 'player1', hp: 100, maxHp: 100, x: window.innerWidth / 2, y: window.innerHeight / 2, ready: false }
+                        player1: { uid: auth.currentUser?.uid || 'p1', nickname, role: 'player1', hp: 100, maxHp: 100, x: window.innerWidth / 2, y: window.innerHeight / 2, ready: false }
                     }
                 });
                 return roomCode;
             }
             async joinRoom(roomCode, nickname) {
-                await signInAnonymously(auth);
+                await ensureAuth();
                 this.roomRef = ref(db, 'games/' + roomCode);
                 const snapshot = await get(this.roomRef);
                 if (!snapshot.exists()) throw new Error('房間不存在！');
                 await update(ref(db, `games/${roomCode}/players/player2`), {
-                    uid: 'p2', nickname, role: 'player2', hp: 100, maxHp: 100, ready: false
+                    uid: auth.currentUser?.uid || 'p2', nickname, role: 'player2', hp: 100, maxHp: 100, ready: false
                 });
                 return roomCode;
             }
         }
 
-        // 鏡頭控制
+        // 鏡頭晃動控制
         class Camera {
             constructor() { this.x = 0; this.y = 0; this.shakeTimer = 0; this.shakeIntensity = 0; }
             shake(intensity, duration) { this.shakeIntensity = intensity; this.shakeTimer = duration; }
@@ -420,7 +314,7 @@
             restore(ctx) { ctx.restore(); }
         }
 
-        // 粒子特效
+        // 粒子系統
         class ParticleManager {
             constructor() { this.particles = []; }
             spawn(x, y, color, count = 10) {
@@ -458,7 +352,7 @@
             }
         }
 
-        // 觸控拖曳管理
+        // 觸控與操控事件
         class TouchManager {
             constructor(canvas, callback) {
                 this.canvas = canvas;
@@ -481,8 +375,7 @@
                 }, { passive: true });
 
                 window.addEventListener('touchend', () => { this.active = false; });
-                
-                // 相容滑鼠拖曳
+
                 this.canvas.addEventListener('mousedown', (e) => {
                     this.active = true;
                     this.callback(e.clientX, e.clientY);
@@ -494,7 +387,7 @@
             }
         }
 
-        // 玩家飛機
+        // 飛機渲染類別
         class Plane {
             constructor(x, y, role) {
                 this.x = x; this.y = y; this.role = role;
@@ -525,7 +418,7 @@
             }
         }
 
-        // UI 控制器
+        // UI 畫面控制
         class UI {
             static updateHUD(data) {
                 document.getElementById('hudRoomCode').textContent = data.roomCode || '----';
@@ -540,7 +433,7 @@
             }
         }
 
-        // 遊戲主程式
+        // 遊戲核心 Engine
         class Game {
             constructor() {
                 this.canvas = document.getElementById('gameCanvas');
@@ -582,7 +475,6 @@
 
                 document.getElementById('displayRoomCode').textContent = Storage.get('roomCode') || '';
 
-                // 綁定技能按鈕特效
                 document.querySelectorAll('.skill-btn').forEach((btn) => {
                     btn.addEventListener('click', () => {
                         this.camera.shake(5, 0.2);
@@ -623,7 +515,7 @@
             }
         }
 
-        // 按鈕監聽事件
+        // 事件監聽與進入流程
         const network = new Network();
 
         document.getElementById('createRoomBtn')?.addEventListener('click', async () => {
