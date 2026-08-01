@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>雙人協作飛機射擊</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; font-family:-apple-system,sans-serif; background:#0a0a12; touch-action:none; }
+  #lobby { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#fff; padding:20px; box-sizing:border-box; }
+  #lobby input { font-size:24px; text-align:center; letter-spacing:8px; width:180px; padding:10px; border-radius:8px; border:none; }
+  #lobby button { font-size:18px; padding:12px 24px; border-radius:8px; border:none; background:#3a7bd5; color:#fff; }
+  #lobby .side-btn { display:flex; gap:12px; }
+  #lobby .side-btn button { flex:1; background:#222; border:2px solid #444; }
+  #lobby .side-btn button.selected { border-color:#3a7bd5; background:#1a3a5c; }
+  #status { color:#aaa; font-size:14px; text-align:center; min-height:20px; }
+  #game { position:absolute; inset:0; display:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #hud { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:10px 16px; color:#fff; font-size:14px; pointer-events:none; }
+  #controls { position:absolute; bottom:0; left:0; right:0; display:flex; height:120px; }
+  .ctrl-zone { flex:1; display:flex; align-items:center; justify-content:center; font-size:16px; color:rgba(255,255,255,0.5); user-select:none; }
+  .ctrl-zone.left { border-right:1px solid rgba(255,255,255,0.1); }
+  #resultOverlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; background:rgba(0,0,0,0.75); color:#fff; z-index:10; }
+  #resultOverlay button { font-size:16px; padding:10px 20px; border-radius:8px; border:none; background:#3a7bd5; color:#fff; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div id="lobby">
+  <h2 style="margin:0;">雙人協作飛機射擊</h2>
+  <div>
+    <div style="text-align:center; margin-bottom:8px; color:#aaa; font-size:14px;">房間代碼（雙方輸入同一組）</div>
+    <input id="roomCode" maxlength="4" placeholder="0000" inputmode="numeric">
+  </div>
+  <div class="side-btn">
+    <button id="btnLeft">我負責左邊</button>
+    <button id="btnRight">我負責右邊</button>
+  </div>
+  <button id="btnJoin">連線</button>
+  <div id="status"></div>
+</div>
+
+<div id="game">
+  <canvas id="canvas"></canvas>
+  <div id="hud">
+    <span id="hpText">HP: 3</span>
+    <span id="scoreText">分數: 0</span>
+  </div>
+  <div id="controls">
+    <div class="ctrl-zone left" id="zoneLeft">左邊控制區<br>拖曳移動 / 點擊開火</div>
+    <div class="ctrl-zone right" id="zoneRight">右邊控制區<br>拖曳移動 / 點擊開火</div>
+  </div>
+  <div id="resultOverlay">
+    <div id="resultText" style="font-size:28px;"></div>
+    <button id="btnRestart">重新開始</button>
+  </div>
+</div>
+
+<script>
+// === 把這裡換成你自己 Firebase 專案的設定（Realtime Database） ===
+const firebaseConfig = {
+  apiKey: "你的_API_KEY",
+  databaseURL: "https://你的專案ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "你的專案ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let roomCode = "";
+let mySide = null; // "left" or "right"
+let isHost = false; // host 負責跑遊戲邏輯（敵人生成、碰撞判定），另一方純接收畫面
+let roomRef = null;
+
+const lobby = document.getElementById('lobby');
+const gameDiv = document.getElementById('game');
+const statusEl = document.getElementById('status');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+
+btnLeft.onclick = () => { mySide = 'left'; btnLeft.classList.add('selected'); btnRight.classList.remove('selected'); };
+btnRight.onclick = () => { mySide = 'right'; btnRight.classList.add('selected'); btnLeft.classList.remove('selected'); };
+
+document.getElementById('btnJoin').onclick = () => {
+  const code = document.getElementById('roomCode').value.trim();
+  if (!code) { statusEl.textContent = "請輸入房間代碼"; return; }
+  if (!mySide) { statusEl.textContent = "請選擇你負責左邊還是右邊"; return; }
+  roomCode = code;
+  joinRoom();
+};
+
+function joinRoom() {
+  roomRef = db.ref('games/' + roomCode);
+  statusEl.textContent = "連線中...";
+
+  // 用 transaction 決定誰是 host：先到的人成為 host
+  roomRef.child('meta/hostClaimed').transaction(current => {
+    if (current === null) return true;
+    return current;
+  }, (error, committed, snapshot) => {
+    isHost = committed; // 我這次是第一個把 hostClaimed 從 null 設成 true 的人 → 我是 host
+    roomRef.child('players/' + mySide).set({ joined: true, ts: Date.now() });
+    statusEl.textContent = "等待對方加入...";
+    waitForBothPlayers();
+  });
+}
+
+function waitForBothPlayers() {
+  roomRef.child('players').on('value', snap => {
+    const players = snap.val() || {};
+    if (players.left && players.right) {
+      startGame();
+      roomRef.child('players').off();
+    }
+  });
+}
+
+// ===================== 遊戲主體 =====================
+
+let canvas, ctx, W, H;
+let plane = { x: 0.5, hp: 3 }; // x 是 0~1 比例，方便跨裝置解析度同步
+let bullets = []; // {x,y,side}
+let enemies = []; // {x,y}
+let score = 0;
+let gameOver = false;
+let lastEnemySpawn = 0;
+let lastFire = { left: 0, right: 0 };
+
+function startGame() {
+  lobby.style.display = 'none';
+  gameDiv.style.display = 'block';
+  canvas = document.getElementById('canvas');
+  ctx = canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize', resize);
+
+  setupControls();
+
+  if (isHost) {
+    roomRef.child('state').set({ planeX: 0.5, hp: 3, score: 0, enemies: [], bullets: [], over: false });
+    requestAnimationFrame(gameLoop);
+  } else {
+    // 非 host 只監聽並畫出 host 算好的狀態
+    roomRef.child('state').on('value', snap => {
+      const s = snap.val();
+      if (!s) return;
+      plane.x = s.planeX; plane.hp = s.hp; score = s.score;
+      bullets = s.bullets || []; enemies = s.enemies || [];
+      gameOver = s.over;
+      render();
+      if (gameOver) showResult(s.hp > 0);
+    });
+  }
+
+  // 兩邊都要送自己的輸入狀態給 host 讀
+  roomRef.child('input/' + mySide).set({ moving: false, dir: 0, fireRequest: 0 });
+}
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight - 120;
+  canvas.style.height = H + 'px';
+}
+
+function setupControls() {
+  const zoneLeft = document.getElementById('zoneLeft');
+  const zoneRight = document.getElementById('zoneRight');
+  const myZone = mySide === 'left' ? zoneLeft : zoneRight;
+  const otherZone = mySide === 'left' ? zoneRight : zoneLeft;
+  otherZone.style.opacity = '0.3';
+  myZone.innerHTML = "拖曳移動<br>點擊開火";
+
+  let dragging = false, startX = 0;
+
+  myZone.addEventListener('touchstart', e => {
+    dragging = true;
+    startX = e.touches[0].clientX;
+    requestFire();
+  });
+  myZone.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    startX = e.touches[0].clientX;
+    sendMoveInput(dx);
+  });
+  myZone.addEventListener('touchend', () => { dragging = false; });
+
+  // 桌面測試用滑鼠事件
+  myZone.addEventListener('mousedown', e => { dragging = true; startX = e.clientX; requestFire(); });
+  window.addEventListener('mousemove', e => { if (dragging) { const dx = e.clientX - startX; startX = e.clientX; sendMoveInput(dx); } });
+  window.addEventListener('mouseup', () => { dragging = false; });
+}
+
+function sendMoveInput(dx) {
+  roomRef.child('input/' + mySide + '/dir').set(dx);
+}
+function requestFire() {
+  roomRef.child('input/' + mySide + '/fireRequest').set(Date.now());
+}
+
+// ===================== Host 遊戲邏輯 =====================
+
+let inputCache = { left: {dir:0, fireRequest:0}, right: {dir:0, fireRequest:0} };
+let lastFireHandled = { left: 0, right: 0 };
+
+function gameLoop(ts) {
+  if (!isHost || gameOver) return;
+
+  roomRef.child('input').once('value', snap => {
+    inputCache = snap.val() || inputCache;
+  });
+
+  // 移動：左邊只能往左推、右邊只能往右推，兩邊都要出力才能靈活移動（簡化：各自方向即時反映）
+  const leftDir = inputCache.left ? (inputCache.left.dir || 0) : 0;
+  const rightDir = inputCache.right ? (inputCache.right.dir || 0) : 0;
+  plane.x += (leftDir + rightDir) * 0.0015;
+  plane.x = Math.min(Math.max(plane.x, 0.05), 0.95);
+
+  // 開火判定
+  if (inputCache.left && inputCache.left.fireRequest > lastFireHandled.left) {
+    lastFireHandled.left = inputCache.left.fireRequest;
+    bullets.push({ x: plane.x - 0.04, y: 0.85, side: 'left' });
+  }
+  if (inputCache.right && inputCache.right.fireRequest > lastFireHandled.right) {
+    lastFireHandled.right = inputCache.right.fireRequest;
+    bullets.push({ x: plane.x + 0.04, y: 0.85, side: 'right' });
+  }
+
+  // 子彈往上飛
+  bullets.forEach(b => b.y -= 0.02);
+  bullets = bullets.filter(b => b.y > -0.05);
+
+  // 敵人生成與下移
+  if (ts - lastEnemySpawn > 1200) {
+    lastEnemySpawn = ts;
+    enemies.push({ x: 0.1 + Math.random() * 0.8, y: -0.05 });
+  }
+  enemies.forEach(en => en.y += 0.006);
+  enemies = enemies.filter(en => en.y < 1.1);
+
+  // 碰撞：子彈打敵人
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    for (let j = bullets.length - 1; j >= 0; j--) {
+      if (Math.abs(enemies[i].x - bullets[j].x) < 0.04 && Math.abs(enemies[i].y - bullets[j].y) < 0.04) {
+        enemies.splice(i, 1);
+        bullets.splice(j, 1);
+        score += 10;
+        break;
+      }
+    }
+  }
+
+  // 碰撞：敵人打到飛機
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (Math.abs(enemies[i].x - plane.x) < 0.05 && enemies[i].y > 0.8) {
+      enemies.splice(i, 1);
+      plane.hp -= 1;
+    }
+  }
+
+  if (plane.hp <= 0) gameOver = true;
+
+  roomRef.child('state').set({
+    planeX: plane.x, hp: plane.hp, score, enemies, bullets, over: gameOver
+  });
+
+  render();
+  if (gameOver) { showResult(false); return; }
+  requestAnimationFrame(gameLoop);
+}
+
+// ===================== 畫面渲染（雙方都執行） =====================
+
+function render() {
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, W, H);
+
+  document.getElementById('hpText').textContent = 'HP: ' + plane.hp;
+  document.getElementById('scoreText').textContent = '分數: ' + score;
+
+  // 飛機
+  const px = plane.x * W, py = H * 0.85;
+  ctx.fillStyle = '#3a7bd5';
+  ctx.fillRect(px - 20, py - 15, 40, 30);
+  ctx.fillStyle = '#ffcc00';
+  ctx.fillRect(px - 20, py - 15, 6, 30); // 左翼標示
+  ctx.fillRect(px + 14, py - 15, 6, 30); // 右翼標示
+
+  // 子彈
+  ctx.fillStyle = '#00e5ff';
+  bullets.forEach(b => ctx.fillRect(b.x * W - 3, b.y * H - 8, 6, 16));
+
+  // 敵人
+  ctx.fillStyle = '#e24b4a';
+  enemies.forEach(en => ctx.fillRect(en.x * W - 15, en.y * H - 15, 30, 30));
+}
+
+function showResult(won) {
+  const overlay = document.getElementById('resultOverlay');
+  document.getElementById('resultText').textContent = won ? '過關！' : (isHost ? '飛機被擊落了' : '飛機被擊落了');
+  overlay.style.display = 'flex';
+}
+
+document.getElementById('btnRestart').onclick = () => {
+  location.reload();
+};
+</script>
+</body>
+</html>
