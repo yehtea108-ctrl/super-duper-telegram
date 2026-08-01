@@ -1,310 +1,665 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>雙人協作飛機射擊</title>
-<style>
-  html, body { margin:0; padding:0; height:100%; overflow:hidden; font-family:-apple-system,sans-serif; background:#0a0a12; touch-action:none; }
-  #lobby { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#fff; padding:20px; box-sizing:border-box; }
-  #lobby input { font-size:24px; text-align:center; letter-spacing:8px; width:180px; padding:10px; border-radius:8px; border:none; }
-  #lobby button { font-size:18px; padding:12px 24px; border-radius:8px; border:none; background:#3a7bd5; color:#fff; }
-  #lobby .side-btn { display:flex; gap:12px; }
-  #lobby .side-btn button { flex:1; background:#222; border:2px solid #444; }
-  #lobby .side-btn button.selected { border-color:#3a7bd5; background:#1a3a5c; }
-  #status { color:#aaa; font-size:14px; text-align:center; min-height:20px; }
-  #game { position:absolute; inset:0; display:none; }
-  canvas { display:block; width:100%; height:100%; }
-  #hud { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:10px 16px; color:#fff; font-size:14px; pointer-events:none; }
-  #controls { position:absolute; bottom:0; left:0; right:0; display:flex; height:120px; }
-  .ctrl-zone { flex:1; display:flex; align-items:center; justify-content:center; font-size:16px; color:rgba(255,255,255,0.5); user-select:none; }
-  .ctrl-zone.left { border-right:1px solid rgba(255,255,255,0.1); }
-  #resultOverlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; background:rgba(0,0,0,0.75); color:#fff; z-index:10; }
-  #resultOverlay button { font-size:16px; padding:10px 20px; border-radius:8px; border:none; background:#3a7bd5; color:#fff; }
-</style>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>雙人合作生存遊戲</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-color: #f8fafc;
+            --primary-color: #38bdf8;
+            --accent-color: #f43f5e;
+            --border-radius: 30px;
+            --skill-radius: 50px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glass-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            width: 90%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+            z-index: 20;
+        }
+
+        .glass-container h1 {
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            text-align: center;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .menu-box {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .glass-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            border: none;
+            border-radius: var(--border-radius);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+            transition: transform 0.2s, filter 0.2s;
+        }
+
+        .glass-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        .glass-btn:active {
+            transform: scale(0.98);
+        }
+
+        .divider {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9rem;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-around;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 10px 20px;
+            pointer-events: auto;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .hud-boss {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40%;
+            max-width: 400px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .boss-name {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            color: var(--accent-color);
+        }
+
+        .boss-bar-bg, .hp-bar-bg, .mp-bar-bg {
+            width: 100%;
+            height: 10px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .boss-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: var(--accent-color);
+            transition: width 0.2s;
+        }
+
+        .hud-bottom {
+            display: flex;
+            justify-content: space-between;
+            pointer-events: auto;
+        }
+
+        .player-hud {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .p-name {
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .hp-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: #22c55e;
+            transition: width 0.2s;
+        }
+
+        .mp-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: #38bdf8;
+            transition: width 0.2s;
+        }
+
+        .skill-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .skill-btn {
+            width: var(--skill-radius);
+            height: var(--skill-radius);
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-color);
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .skill-btn:active {
+            transform: scale(0.92);
+            background-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .glass-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .overlay-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
 </head>
 <body>
 
-<div id="lobby">
-  <h2 style="margin:0;">雙人協作飛機射擊</h2>
-  <div>
-    <div style="text-align:center; margin-bottom:8px; color:#aaa; font-size:14px;">房間代碼（雙方輸入同一組）</div>
-    <input id="roomCode" maxlength="4" placeholder="0000" inputmode="numeric">
-  </div>
-  <div class="side-btn">
-    <button id="btnLeft">我負責左邊</button>
-    <button id="btnRight">我負責右邊</button>
-  </div>
-  <button id="btnJoin">連線</button>
-  <div id="status"></div>
-</div>
+    <!-- 主選單區塊 -->
+    <div id="menuContainer" class="glass-container">
+        <h1>雙人合作生存遊戲</h1>
+        <div class="menu-box">
+            <div class="input-group">
+                <input type="text" id="nicknameInput" placeholder="請輸入玩家暱稱" maxlength="10">
+            </div>
+            <div class="btn-group">
+                <button id="createRoomBtn" class="glass-btn">建立房間</button>
+            </div>
+            <div class="divider">或</div>
+            <div class="input-group">
+                <input type="text" id="roomCodeInput" placeholder="請輸入5碼房號 (例: AB123)" maxlength="5">
+            </div>
+            <div class="btn-group">
+                <button id="joinRoomBtn" class="glass-btn">加入房間</button>
+            </div>
+        </div>
+    </div>
 
-<div id="game">
-  <canvas id="canvas"></canvas>
-  <div id="hud">
-    <span id="hpText">HP: 3</span>
-    <span id="scoreText">分數: 0</span>
-  </div>
-  <div id="controls">
-    <div class="ctrl-zone left" id="zoneLeft">左邊控制區<br>拖曳移動 / 點擊開火</div>
-    <div class="ctrl-zone right" id="zoneRight">右邊控制區<br>拖曳移動 / 點擊開火</div>
-  </div>
-  <div id="resultOverlay">
-    <div id="resultText" style="font-size:28px;"></div>
-    <button id="btnRestart">重新開始</button>
-  </div>
-</div>
+    <!-- 遊戲主畫面 -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="hud">
+            <div class="hud-top">
+                <div class="hud-item">房號: <span id="hudRoomCode">----</span></div>
+                <div class="hud-item">波數: <span id="hudWave">1</span></div>
+                <div class="hud-item">分數: <span id="hudScore">0</span></div>
+                <div class="hud-item">FPS: <span id="hudFps">60</span></div>
+                <div class="hud-item">Ping: <span id="hudPing">0ms</span></div>
+            </div>
+            <div class="hud-boss" id="hudBossContainer" style="display: none;">
+                <div class="boss-name" id="hudBossName">Boss</div>
+                <div class="boss-bar-bg"><div class="boss-bar-fill" id="hudBossBar"></div></div>
+            </div>
+            <div class="hud-bottom">
+                <div class="player-hud" id="playerHud1">
+                    <div class="p-name" id="hudP1Name">Player 1 (主控/技能)</div>
+                    <div class="hp-bar-bg"><div class="hp-bar-fill" id="hudP1Hp" style="width: 100%;"></div></div>
+                    <div class="mp-bar-bg"><div class="mp-bar-fill" id="hudP1Mp" style="width: 100%;"></div></div>
+                </div>
+                <div class="player-hud" id="playerHud2">
+                    <div class="p-name" id="hudP2Name">Player 2 (駕駛)</div>
+                    <div class="hp-bar-bg"><div class="hp-bar-fill" id="hudP2Hp" style="width: 100%;"></div></div>
+                </div>
+            </div>
+            <div class="skill-hud" id="skillHud" style="display: none;">
+                <button class="skill-btn" id="skill1Btn">火球</button>
+                <button class="skill-btn" id="skill2Btn">鳳仙花</button>
+                <button class="skill-btn" id="skill3Btn">月讀</button>
+                <button class="skill-btn" id="skill4Btn">神威</button>
+                <button class="skill-btn" id="skill5Btn">天照</button>
+            </div>
+        </div>
+        <div id="uiOverlay" class="glass-overlay">
+            <div class="overlay-content" id="overlayContent">
+                <h2>等待玩家加入...</h2>
+                <p>房號：<span id="displayRoomCode"></span></p>
+                <button id="readyBtn" class="glass-btn">準備就緒</button>
+            </div>
+        </div>
+    </div>
 
-<script>
-// === 把這裡換成你自己 Firebase 專案的設定（Realtime Database） ===
-const firebaseConfig = {
-  apiKey: "AIzaSyB2wAAQrplWWXR8r4feft1X6fjpV-omh_0",
-  authDomain: "tttt-b6efa.firebaseapp.com",
-  databaseURL: "https://tttt-b6efa-default-rtdb.firebaseio.com",
-  projectId: "tttt-b6efa"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    <!-- JavaScript 模組 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-let roomCode = "";
-let mySide = null; // "left" or "right"
-let isHost = false; // host 負責跑遊戲邏輯（敵人生成、碰撞判定），另一方純接收畫面
-let roomRef = null;
+        // Firebase 專案設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyB2wAAQrplWWXR8r4feft1X6fjpV-omh_0",
+            authDomain: "tttt-b6efa.firebaseapp.com",
+            databaseURL: "https://tttt-b6efa-default-rtdb.firebaseio.com",
+            projectId: "tttt-b6efa",
+            storageBucket: "tttt-b6efa.firebasestorage.app",
+            messagingSenderId: "1037464180661",
+            appId: "1:1037464180661:web:a1b19e3420ee6e331debfc",
+            measurementId: "G-HRL1XD4RZW"
+        };
 
-const lobby = document.getElementById('lobby');
-const gameDiv = document.getElementById('game');
-const statusEl = document.getElementById('status');
-const btnLeft = document.getElementById('btnLeft');
-const btnRight = document.getElementById('btnRight');
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
 
-btnLeft.onclick = () => { mySide = 'left'; btnLeft.classList.add('selected'); btnRight.classList.remove('selected'); };
-btnRight.onclick = () => { mySide = 'right'; btnRight.classList.add('selected'); btnLeft.classList.remove('selected'); };
+        // 本地快取
+        const Storage = {
+            set(key, value) { localStorage.setItem(key, JSON.stringify(value)); },
+            get(key) {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : null;
+            }
+        };
 
-document.getElementById('btnJoin').onclick = () => {
-  const code = document.getElementById('roomCode').value.trim();
-  if (!code) { statusEl.textContent = "請輸入房間代碼"; return; }
-  if (!mySide) { statusEl.textContent = "請選擇你負責左邊還是右邊"; return; }
-  roomCode = code;
-  joinRoom();
-};
+        // 網路通訊管理
+        class Network {
+            constructor() { this.roomRef = null; }
+            async createRoom(nickname) {
+                await signInAnonymously(auth);
+                const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
+                this.roomRef = ref(db, 'games/' + roomCode);
+                await set(this.roomRef, {
+                    gameState: { started: false, paused: false, gameOver: false, wave: 1, score: 0, seed: Date.now() },
+                    players: {
+                        player1: { uid: 'p1', nickname, role: 'player1', hp: 100, maxHp: 100, x: window.innerWidth / 2, y: window.innerHeight / 2, ready: false }
+                    }
+                });
+                return roomCode;
+            }
+            async joinRoom(roomCode, nickname) {
+                await signInAnonymously(auth);
+                this.roomRef = ref(db, 'games/' + roomCode);
+                const snapshot = await get(this.roomRef);
+                if (!snapshot.exists()) throw new Error('房間不存在！');
+                await update(ref(db, `games/${roomCode}/players/player2`), {
+                    uid: 'p2', nickname, role: 'player2', hp: 100, maxHp: 100, ready: false
+                });
+                return roomCode;
+            }
+        }
 
-function joinRoom() {
-  roomRef = db.ref('games/' + roomCode);
-  statusEl.textContent = "連線中...";
+        // 鏡頭控制
+        class Camera {
+            constructor() { this.x = 0; this.y = 0; this.shakeTimer = 0; this.shakeIntensity = 0; }
+            shake(intensity, duration) { this.shakeIntensity = intensity; this.shakeTimer = duration; }
+            update(dt) {
+                if (this.shakeTimer > 0) {
+                    this.shakeTimer -= dt;
+                    this.x = (Math.random() - 0.5) * this.shakeIntensity;
+                    this.y = (Math.random() - 0.5) * this.shakeIntensity;
+                } else { this.x = 0; this.y = 0; }
+            }
+            apply(ctx) { ctx.save(); ctx.translate(this.x, this.y); }
+            restore(ctx) { ctx.restore(); }
+        }
 
-  // 用 transaction 決定誰是 host：先到的人成為 host
-  roomRef.child('meta/hostClaimed').transaction(current => {
-    if (current === null) return true;
-    return current;
-  }, (error, committed, snapshot) => {
-    isHost = committed; // 我這次是第一個把 hostClaimed 從 null 設成 true 的人 → 我是 host
-    roomRef.child('players/' + mySide).set({ joined: true, ts: Date.now() });
-    statusEl.textContent = "等待對方加入...";
-    waitForBothPlayers();
-  });
-}
+        // 粒子特效
+        class ParticleManager {
+            constructor() { this.particles = []; }
+            spawn(x, y, color, count = 10) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 3 + 1;
+                    this.particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 0.5,
+                        maxLife: 0.5,
+                        size: Math.random() * 3 + 2,
+                        color
+                    });
+                }
+            }
+            update(dt) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx; p.y += p.vy; p.life -= dt;
+                    if (p.life <= 0) this.particles.splice(i, 1);
+                }
+            }
+            draw(ctx) {
+                for (const p of this.particles) {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
 
-function waitForBothPlayers() {
-  roomRef.child('players').on('value', snap => {
-    const players = snap.val() || {};
-    if (players.left && players.right) {
-      startGame();
-      roomRef.child('players').off();
-    }
-  });
-}
+        // 觸控拖曳管理
+        class TouchManager {
+            constructor(canvas, callback) {
+                this.canvas = canvas;
+                this.callback = callback;
+                this.active = false;
+                this.init();
+            }
+            init() {
+                this.canvas.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 0) {
+                        this.active = true;
+                        this.callback(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: true });
 
-// ===================== 遊戲主體 =====================
+                window.addEventListener('touchmove', (e) => {
+                    if (this.active && e.touches.length > 0) {
+                        this.callback(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: true });
 
-let canvas, ctx, W, H;
-let plane = { x: 0.5, hp: 3 }; // x 是 0~1 比例，方便跨裝置解析度同步
-let bullets = []; // {x,y,side}
-let enemies = []; // {x,y}
-let score = 0;
-let gameOver = false;
-let lastEnemySpawn = 0;
-let lastFire = { left: 0, right: 0 };
+                window.addEventListener('touchend', () => { this.active = false; });
+                
+                // 相容滑鼠拖曳
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.active = true;
+                    this.callback(e.clientX, e.clientY);
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (this.active) this.callback(e.clientX, e.clientY);
+                });
+                window.addEventListener('mouseup', () => { this.active = false; });
+            }
+        }
 
-function startGame() {
-  lobby.style.display = 'none';
-  gameDiv.style.display = 'block';
-  canvas = document.getElementById('canvas');
-  ctx = canvas.getContext('2d');
-  resize();
-  window.addEventListener('resize', resize);
+        // 玩家飛機
+        class Plane {
+            constructor(x, y, role) {
+                this.x = x; this.y = y; this.role = role;
+                this.width = 40; this.height = 50;
+            }
+            setPosition(x, y) { this.x = x; this.y = y; }
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, -this.height / 2);
+                ctx.lineTo(this.width / 2, this.height / 2);
+                ctx.lineTo(0, this.height / 3);
+                ctx.lineTo(-this.width / 2, this.height / 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
 
-  setupControls();
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🚀', 0, 0);
+                ctx.restore();
+            }
+        }
 
-  if (isHost) {
-    roomRef.child('state').set({ planeX: 0.5, hp: 3, score: 0, enemies: [], bullets: [], over: false });
-    requestAnimationFrame(gameLoop);
-  } else {
-    // 非 host 只監聽並畫出 host 算好的狀態
-    roomRef.child('state').on('value', snap => {
-      const s = snap.val();
-      if (!s) return;
-      plane.x = s.planeX; plane.hp = s.hp; score = s.score;
-      bullets = s.bullets || []; enemies = s.enemies || [];
-      gameOver = s.over;
-      render();
-      if (gameOver) showResult(s.hp > 0);
-    });
-  }
+        // UI 控制器
+        class UI {
+            static updateHUD(data) {
+                document.getElementById('hudRoomCode').textContent = data.roomCode || '----';
+                document.getElementById('hudWave').textContent = data.wave || 1;
+                document.getElementById('hudScore').textContent = data.score || 0;
+                document.getElementById('hudFps').textContent = data.fps || 60;
+                document.getElementById('hudPing').textContent = (data.ping || 0) + 'ms';
+            }
+            static showGameUI() {
+                document.getElementById('menuContainer').style.display = 'none';
+                document.getElementById('gameContainer').style.display = 'block';
+            }
+        }
 
-  // 兩邊都要送自己的輸入狀態給 host 讀
-  roomRef.child('input/' + mySide).set({ moving: false, dir: 0, fireRequest: 0 });
-}
+        // 遊戲主程式
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
 
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight - 120;
-  canvas.style.height = H + 'px';
-}
+                this.role = Storage.get('role') || 'player2';
+                this.camera = new Camera();
+                this.particles = new ParticleManager();
+                this.plane = new Plane(this.width / 2, this.height / 2, this.role);
 
-function setupControls() {
-  const zoneLeft = document.getElementById('zoneLeft');
-  const zoneRight = document.getElementById('zoneRight');
-  const myZone = mySide === 'left' ? zoneLeft : zoneRight;
-  const otherZone = mySide === 'left' ? zoneRight : zoneLeft;
-  otherZone.style.opacity = '0.3';
-  myZone.innerHTML = "拖曳移動<br>點擊開火";
+                this.lastTime = performance.now();
+                this.fps = 60;
 
-  let dragging = false, startX = 0;
+                this.initListeners();
+            }
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+            }
+            initListeners() {
+                window.addEventListener('resize', () => this.resize());
 
-  myZone.addEventListener('touchstart', e => {
-    dragging = true;
-    startX = e.touches[0].clientX;
-    requestFire();
-  });
-  myZone.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    const dx = e.touches[0].clientX - startX;
-    startX = e.touches[0].clientX;
-    sendMoveInput(dx);
-  });
-  myZone.addEventListener('touchend', () => { dragging = false; });
+                if (this.role === 'player2') {
+                    this.touch = new TouchManager(this.canvas, (x, y) => {
+                        this.plane.setPosition(x, y);
+                        this.particles.spawn(x, y + 20, '#38bdf8', 2);
+                    });
+                }
 
-  // 桌面測試用滑鼠事件
-  myZone.addEventListener('mousedown', e => { dragging = true; startX = e.clientX; requestFire(); });
-  window.addEventListener('mousemove', e => { if (dragging) { const dx = e.clientX - startX; startX = e.clientX; sendMoveInput(dx); } });
-  window.addEventListener('mouseup', () => { dragging = false; });
-}
+                document.getElementById('readyBtn')?.addEventListener('click', () => {
+                    document.getElementById('uiOverlay').style.display = 'none';
+                    if (this.role === 'player1') {
+                        document.getElementById('skillHud').style.display = 'flex';
+                    }
+                });
 
-function sendMoveInput(dx) {
-  roomRef.child('input/' + mySide + '/dir').set(dx);
-}
-function requestFire() {
-  roomRef.child('input/' + mySide + '/fireRequest').set(Date.now());
-}
+                document.getElementById('displayRoomCode').textContent = Storage.get('roomCode') || '';
 
-// ===================== Host 遊戲邏輯 =====================
+                // 綁定技能按鈕特效
+                document.querySelectorAll('.skill-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        this.camera.shake(5, 0.2);
+                        this.particles.spawn(this.plane.x, this.plane.y, '#f43f5e', 15);
+                    });
+                });
+            }
+            start() {
+                this.loop(performance.now());
+            }
+            loop(currentTime) {
+                const dt = (currentTime - this.lastTime) / 1000;
+                this.fps = Math.round(1 / (dt || 0.016));
+                this.lastTime = currentTime;
 
-let inputCache = { left: {dir:0, fireRequest:0}, right: {dir:0, fireRequest:0} };
-let lastFireHandled = { left: 0, right: 0 };
+                this.update(dt);
+                this.draw();
 
-function gameLoop(ts) {
-  if (!isHost || gameOver) return;
+                requestAnimationFrame((t) => this.loop(t));
+            }
+            update(dt) {
+                this.camera.update(dt);
+                this.particles.update(dt);
+                UI.updateHUD({
+                    roomCode: Storage.get('roomCode'),
+                    wave: 1,
+                    score: 0,
+                    fps: this.fps,
+                    ping: 12
+                });
+            }
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                this.camera.apply(this.ctx);
+                this.plane.draw(this.ctx);
+                this.particles.draw(this.ctx);
+                this.camera.restore(this.ctx);
+            }
+        }
 
-  roomRef.child('input').once('value', snap => {
-    inputCache = snap.val() || inputCache;
-  });
+        // 按鈕監聽事件
+        const network = new Network();
 
-  // 移動：左邊只能往左推、右邊只能往右推，兩邊都要出力才能靈活移動（簡化：各自方向即時反映）
-  const leftDir = inputCache.left ? (inputCache.left.dir || 0) : 0;
-  const rightDir = inputCache.right ? (inputCache.right.dir || 0) : 0;
-  plane.x += (leftDir + rightDir) * 0.0015;
-  plane.x = Math.min(Math.max(plane.x, 0.05), 0.95);
+        document.getElementById('createRoomBtn')?.addEventListener('click', async () => {
+            const nickname = document.getElementById('nicknameInput').value.trim() || 'Player 1';
+            try {
+                const roomCode = await network.createRoom(nickname);
+                Storage.set('roomCode', roomCode);
+                Storage.set('role', 'player1');
+                Storage.set('nickname', nickname);
+                UI.showGameUI();
+                const game = new Game();
+                game.start();
+            } catch (e) {
+                alert('建立房間失敗: ' + e.message);
+            }
+        });
 
-  // 開火判定
-  if (inputCache.left && inputCache.left.fireRequest > lastFireHandled.left) {
-    lastFireHandled.left = inputCache.left.fireRequest;
-    bullets.push({ x: plane.x - 0.04, y: 0.85, side: 'left' });
-  }
-  if (inputCache.right && inputCache.right.fireRequest > lastFireHandled.right) {
-    lastFireHandled.right = inputCache.right.fireRequest;
-    bullets.push({ x: plane.x + 0.04, y: 0.85, side: 'right' });
-  }
-
-  // 子彈往上飛
-  bullets.forEach(b => b.y -= 0.02);
-  bullets = bullets.filter(b => b.y > -0.05);
-
-  // 敵人生成與下移
-  if (ts - lastEnemySpawn > 1200) {
-    lastEnemySpawn = ts;
-    enemies.push({ x: 0.1 + Math.random() * 0.8, y: -0.05 });
-  }
-  enemies.forEach(en => en.y += 0.006);
-  enemies = enemies.filter(en => en.y < 1.1);
-
-  // 碰撞：子彈打敵人
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    for (let j = bullets.length - 1; j >= 0; j--) {
-      if (Math.abs(enemies[i].x - bullets[j].x) < 0.04 && Math.abs(enemies[i].y - bullets[j].y) < 0.04) {
-        enemies.splice(i, 1);
-        bullets.splice(j, 1);
-        score += 10;
-        break;
-      }
-    }
-  }
-
-  // 碰撞：敵人打到飛機
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    if (Math.abs(enemies[i].x - plane.x) < 0.05 && enemies[i].y > 0.8) {
-      enemies.splice(i, 1);
-      plane.hp -= 1;
-    }
-  }
-
-  if (plane.hp <= 0) gameOver = true;
-
-  roomRef.child('state').set({
-    planeX: plane.x, hp: plane.hp, score, enemies, bullets, over: gameOver
-  });
-
-  render();
-  if (gameOver) { showResult(false); return; }
-  requestAnimationFrame(gameLoop);
-}
-
-// ===================== 畫面渲染（雙方都執行） =====================
-
-function render() {
-  ctx.fillStyle = '#0a0a12';
-  ctx.fillRect(0, 0, W, H);
-
-  document.getElementById('hpText').textContent = 'HP: ' + plane.hp;
-  document.getElementById('scoreText').textContent = '分數: ' + score;
-
-  // 飛機
-  const px = plane.x * W, py = H * 0.85;
-  ctx.fillStyle = '#3a7bd5';
-  ctx.fillRect(px - 20, py - 15, 40, 30);
-  ctx.fillStyle = '#ffcc00';
-  ctx.fillRect(px - 20, py - 15, 6, 30); // 左翼標示
-  ctx.fillRect(px + 14, py - 15, 6, 30); // 右翼標示
-
-  // 子彈
-  ctx.fillStyle = '#00e5ff';
-  bullets.forEach(b => ctx.fillRect(b.x * W - 3, b.y * H - 8, 6, 16));
-
-  // 敵人
-  ctx.fillStyle = '#e24b4a';
-  enemies.forEach(en => ctx.fillRect(en.x * W - 15, en.y * H - 15, 30, 30));
-}
-
-function showResult(won) {
-  const overlay = document.getElementById('resultOverlay');
-  document.getElementById('resultText').textContent = won ? '過關！' : (isHost ? '飛機被擊落了' : '飛機被擊落了');
-  overlay.style.display = 'flex';
-}
-
-document.getElementById('btnRestart').onclick = () => {
-  location.reload();
-};
-</script>
+        document.getElementById('joinRoomBtn')?.addEventListener('click', async () => {
+            const nickname = document.getElementById('nicknameInput').value.trim() || 'Player 2';
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            if (!roomCode) {
+                alert('請輸入房號');
+                return;
+            }
+            try {
+                await network.joinRoom(roomCode, nickname);
+                Storage.set('roomCode', roomCode);
+                Storage.set('role', 'player2');
+                Storage.set('nickname', nickname);
+                UI.showGameUI();
+                const game = new Game();
+                game.start();
+            } catch (e) {
+                alert('加入房間失敗: ' + e.message);
+            }
+        });
+    </script>
 </body>
 </html>
