@@ -1,557 +1,493 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>雙人合作生存遊戲</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #0f172a;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: #f8fafc;
-        }
-
-        /* 主選單畫面 */
-        #menuContainer {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            padding: 20px;
-        }
-        .card {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 24px;
-            width: 100%;
-            max-width: 360px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(8px);
-        }
-        h1 {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 24px;
-            color: #38bdf8;
-        }
-        .input-group {
-            margin-bottom: 16px;
-        }
-        label {
-            display: block;
-            font-size: 14px;
-            color: #94a3b8;
-            margin-bottom: 6px;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: #fff;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        input:focus {
-            border-color: #38bdf8;
-        }
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            margin-top: 8px;
-        }
-        .btn:active {
-            transform: scale(0.98);
-        }
-        .btn-primary {
-            background: #0284c7;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #0369a1;
-        }
-        .btn-secondary {
-            background: #334155;
-            color: #f8fafc;
-        }
-        .btn-secondary:hover {
-            background: #475569;
-        }
-
-        /* 遊戲主畫面 */
-        #gameContainer {
-            display: none;
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* 抬頭顯示器 (HUD) */
-        #hud {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            right: 12px;
-            display: flex;
-            justify-content: space-between;
-            pointer-events: none;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .hud-item {
-            background: rgba(15, 23, 42, 0.65);
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(4px);
-        }
-
-        /* 技能按鈕區域 (Player 1) */
-        #skillHud {
-            position: absolute;
-            bottom: 24px;
-            left: 0;
-            right: 0;
-            display: none;
-            justify-content: center;
-            gap: 16px;
-            padding: 0 16px;
-        }
-        .skill-btn {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: rgba(30, 41, 59, 0.8);
-            border: 2px solid #38bdf8;
-            color: #fff;
-            font-size: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-        }
-        .skill-btn:active {
-            transform: scale(0.92);
-            background: #0284c7;
-        }
-
-        /* 準備與房間提示覆蓋層 */
-        #uiOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.85);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(6px);
-            z-index: 10;
-        }
-        .room-code-display {
-            font-size: 32px;
-            font-weight: bold;
-            color: #38bdf8;
-            letter-spacing: 4px;
-            margin: 12px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>雙人協作飛機射擊</title>
+<style>
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; font-family:-apple-system,sans-serif; background:#0a0a12; touch-action:none; }
+  #lobby { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; color:#fff; padding:20px; box-sizing:border-box; }
+  #lobby input { font-size:24px; text-align:center; letter-spacing:8px; width:180px; padding:10px; border-radius:20px; border:none; }
+  #lobby button { font-size:18px; padding:12px 24px; border-radius:24px; border:none; background:#3a7bd5; color:#fff; }
+  #lobby .side-btn { display:flex; gap:12px; }
+  #lobby .side-btn button { flex:1; background:#222; border:2px solid #444; border-radius:16px; }
+  #lobby .side-btn button.selected { border-color:#3a7bd5; background:#1a3a5c; }
+  #status { color:#aaa; font-size:14px; text-align:center; min-height:20px; }
+  #game { position:absolute; inset:0; display:none; }
+  canvas { display:block; width:100%; height:100%; }
+  #hud { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:10px 16px; color:#fff; font-size:14px; pointer-events:none; }
+  #controls { position:absolute; bottom:0; left:0; right:0; display:flex; height:130px; padding:8px 12px; box-sizing:border-box; gap:8px; }
+  .skill-row { flex:1; display:flex; gap:10px; align-items:center; justify-content:center; }
+  .skill-btn {
+    position:relative; width:60px; height:60px; border-radius:50%;
+    background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.25);
+    color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center;
+    text-align:center; user-select:none; overflow:hidden;
+  }
+  .skill-btn .cd-overlay {
+    position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(rgba(0,0,0,0.65) var(--pct,0%), transparent 0);
+    pointer-events:none;
+  }
+  .skill-btn.ready { border-color:#3a7bd5; }
+  #resultOverlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:16px; background:rgba(0,0,0,0.75); color:#fff; z-index:10; }
+  #resultOverlay button { font-size:16px; padding:10px 20px; border-radius:24px; border:none; background:#3a7bd5; color:#fff; }
+  #pilotHint { position:absolute; top:34px; left:0; right:0; text-align:center; color:rgba(255,255,255,0.5); font-size:12px; pointer-events:none; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <!-- 主選單 -->
-    <div id="menuContainer">
-        <div class="card">
-            <h1>雙人合作生存遊戲</h1>
-            <div class="input-group">
-                <label for="nicknameInput">玩家暱稱</label>
-                <input type="text" id="nicknameInput" placeholder="請輸入暱稱" maxlength="10">
-            </div>
-            <button class="btn btn-primary" id="createRoomBtn">建立房間 (P1 技能位)</button>
-            <div style="text-align: center; margin: 16px 0; color: #64748b; font-size: 14px;">或</div>
-            <div class="input-group">
-                <label for="roomCodeInput">房間號碼</label>
-                <input type="text" id="roomCodeInput" placeholder="請輸入5碼房號 (例: AB123)" maxlength="5">
-            </div>
-            <button class="btn btn-secondary" id="joinRoomBtn">加入房間 (P2 駕駛位)</button>
-        </div>
-    </div>
+<div id="lobby">
+  <h2 style="margin:0;">雙人協作飛機射擊</h2>
+  <div>
+    <div style="text-align:center; margin-bottom:8px; color:#aaa; font-size:14px;">房間代碼（雙方輸入同一組）</div>
+    <input id="roomCode" maxlength="4" placeholder="0000" inputmode="numeric">
+  </div>
+  <div class="side-btn">
+    <button id="btnLeft">左邊（火/水屬性）</button>
+    <button id="btnRight">右邊（主駕）</button>
+  </div>
+  <button id="btnJoin">連線</button>
+  <div id="status"></div>
+</div>
 
-    <!-- 遊戲主畫面 -->
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
+<div id="game">
+  <canvas id="canvas"></canvas>
+  <div id="hud">
+    <span id="hpText">HP: 3</span>
+    <span id="scoreText">分數: 0</span>
+  </div>
+  <div id="pilotHint"></div>
+  <div id="controls">
+    <div class="skill-row" id="skillRow"></div>
+  </div>
+  <div id="resultOverlay">
+    <div id="resultText" style="font-size:28px;"></div>
+    <button id="btnRestart">重新開始</button>
+  </div>
+</div>
 
-        <!-- HUD 資料 -->
-        <div id="hud">
-            <div class="hud-item">房號: <span id="hudRoomCode">----</span></div>
-            <div class="hud-item">波次: <span id="hudWave">1</span></div>
-            <div class="hud-item">分數: <span id="hudScore">0</span></div>
-            <div class="hud-item"><span id="hudFps">60</span> FPS | <span id="hudPing">0ms</span></div>
-        </div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB2wAAQrplWWXR8r4feft1X6fjpV-omh_0",
+  authDomain: "tttt-b6efa.firebaseapp.com",
+  databaseURL: "https://tttt-b6efa-default-rtdb.firebaseio.com",
+  projectId: "tttt-b6efa"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-        <!-- P1 技能列 -->
-        <div id="skillHud">
-            <button class="skill-btn" id="skill1">⚡</button>
-            <button class="skill-btn" id="skill2">🛡️</button>
-            <button class="skill-btn" id="skill3">💥</button>
-        </div>
+let roomCode = "";
+let mySide = null;
+let isHost = false;
+let roomRef = null;
 
-        <!-- 準備覆蓋畫面 -->
-        <div id="uiOverlay">
-            <h2 style="font-size: 20px; color: #94a3b8;">等待隊友加入中...</h2>
-            <div class="room-code-display" id="displayRoomCode">-----</div>
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">請將上方房號分享給朋友</p>
-            <button class="btn btn-primary" id="readyBtn" style="width: 200px;">準備完成</button>
-        </div>
-    </div>
+const lobby = document.getElementById('lobby');
+const gameDiv = document.getElementById('game');
+const statusEl = document.getElementById('status');
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
 
-    <!-- JavaScript 模組 -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+btnLeft.onclick = () => { mySide='left'; btnLeft.classList.add('selected'); btnRight.classList.remove('selected'); };
+btnRight.onclick = () => { mySide='right'; btnRight.classList.add('selected'); btnLeft.classList.remove('selected'); };
 
-        // Firebase 專案設定
-        const firebaseConfig = {
-            apiKey: "AIzaSyB2wAAQrplWWXR8r4feft1X6fjpV-omh_0",
-            authDomain: "tttt-b6efa.firebaseapp.com",
-            databaseURL: "https://tttt-b6efa-default-rtdb.firebaseio.com",
-            projectId: "tttt-b6efa",
-            storageBucket: "tttt-b6efa.firebasestorage.app",
-            messagingSenderId: "1037464180661",
-            appId: "1:1037464180661:web:a1b19e3420ee6e331debfc",
-            measurementId: "G-HRL1XD4RZW"
-        };
+document.getElementById('btnJoin').onclick = () => {
+  const code = document.getElementById('roomCode').value.trim();
+  if (!code) { statusEl.textContent = "請輸入房間代碼"; return; }
+  if (!mySide) { statusEl.textContent = "請選擇你負責左邊還是右邊"; return; }
+  roomCode = code;
+  joinRoom();
+};
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+function joinRoom() {
+  roomRef = db.ref('games/' + roomCode);
+  statusEl.textContent = "連線中...";
+  roomRef.child('meta/hostClaimed').transaction(current => current === null ? true : current,
+    (error, committed) => {
+      isHost = committed;
+      roomRef.child('players/' + mySide).set({ joined:true, ts:Date.now() });
+      statusEl.textContent = "等待對方加入...";
+      waitForBothPlayers();
+    });
+}
 
-        // 自動進行匿名登入取得 Firebase Auth 存取權限
-        async function ensureAuth() {
-            if (!auth.currentUser) {
-                await signInAnonymously(auth);
-            }
-        }
+function waitForBothPlayers() {
+  roomRef.child('players').on('value', snap => {
+    const p = snap.val() || {};
+    if (p.left && p.right) { startGame(); roomRef.child('players').off(); }
+  });
+}
 
-        // LocalStorage 快取工具
-        const Storage = {
-            set(key, value) { localStorage.setItem(key, JSON.stringify(value)); },
-            get(key) {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : null;
-            }
-        };
+// ===================== 技能定義 =====================
 
-        // 網路通訊模組
-        class Network {
-            constructor() { this.roomRef = null; }
-            async createRoom(nickname) {
-                await ensureAuth();
-                const roomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
-                this.roomRef = ref(db, 'games/' + roomCode);
-                await set(this.roomRef, {
-                    gameState: { started: false, paused: false, gameOver: false, wave: 1, score: 0, seed: Date.now() },
-                    players: {
-                        player1: { uid: auth.currentUser?.uid || 'p1', nickname, role: 'player1', hp: 100, maxHp: 100, x: window.innerWidth / 2, y: window.innerHeight / 2, ready: false }
-                    }
-                });
-                return roomCode;
-            }
-            async joinRoom(roomCode, nickname) {
-                await ensureAuth();
-                this.roomRef = ref(db, 'games/' + roomCode);
-                const snapshot = await get(this.roomRef);
-                if (!snapshot.exists()) throw new Error('房間不存在！');
-                await update(ref(db, `games/${roomCode}/players/player2`), {
-                    uid: auth.currentUser?.uid || 'p2', nickname, role: 'player2', hp: 100, maxHp: 100, ready: false
-                });
-                return roomCode;
-            }
-        }
+const SKILLS = {
+  left: [
+    { id:'fireball', label:'大火球', cd:3000, icon:'🔥' },
+    { id:'homing',   label:'鳳仙花', cd:4000, icon:'✳' },
+    { id:'dragon',   label:'水龍彈', cd:5500, icon:'🌊' }
+  ],
+  right: [
+    { id:'tsukuyomi', label:'月讀', cd:6000, icon:'◐' },
+    { id:'kamui',     label:'神威', cd:4500, icon:'◎' },
+    { id:'amaterasu', label:'天照', cd:5000, icon:'◆' }
+  ]
+};
 
-        // 鏡頭晃動控制
-        class Camera {
-            constructor() { this.x = 0; this.y = 0; this.shakeTimer = 0; this.shakeIntensity = 0; }
-            shake(intensity, duration) { this.shakeIntensity = intensity; this.shakeTimer = duration; }
-            update(dt) {
-                if (this.shakeTimer > 0) {
-                    this.shakeTimer -= dt;
-                    this.x = (Math.random() - 0.5) * this.shakeIntensity;
-                    this.y = (Math.random() - 0.5) * this.shakeIntensity;
-                } else { this.x = 0; this.y = 0; }
-            }
-            apply(ctx) { ctx.save(); ctx.translate(this.x, this.y); }
-            restore(ctx) { ctx.restore(); }
-        }
+let cooldownUntil = {};
+let skillButtons = {};
 
-        // 粒子系統
-        class ParticleManager {
-            constructor() { this.particles = []; }
-            spawn(x, y, color, count = 10) {
-                for (let i = 0; i < count; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = Math.random() * 3 + 1;
-                    this.particles.push({
-                        x, y,
-                        vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed,
-                        life: 0.5,
-                        maxLife: 0.5,
-                        size: Math.random() * 3 + 2,
-                        color
-                    });
-                }
-            }
-            update(dt) {
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    const p = this.particles[i];
-                    p.x += p.vx; p.y += p.vy; p.life -= dt;
-                    if (p.life <= 0) this.particles.splice(i, 1);
-                }
-            }
-            draw(ctx) {
-                for (const p of this.particles) {
-                    ctx.save();
-                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
-        }
+function buildSkillUI() {
+  const row = document.getElementById('skillRow');
+  row.innerHTML = '';
+  const mySkills = SKILLS[mySide];
+  mySkills.forEach(s => {
+    const btn = document.createElement('div');
+    btn.className = 'skill-btn ready';
+    btn.innerHTML = '<div class="cd-overlay" style="--pct:0%"></div><div style="position:relative;z-index:1;">' + s.icon + '<br>' + s.label + '</div>';
+    btn.addEventListener('touchstart', e => { e.preventDefault(); triggerSkill(s); });
+    btn.addEventListener('click', () => triggerSkill(s));
+    row.appendChild(btn);
+    skillButtons[s.id] = btn;
+    cooldownUntil[s.id] = 0;
+  });
 
-        // 觸控與操控事件
-        class TouchManager {
-            constructor(canvas, callback) {
-                this.canvas = canvas;
-                this.callback = callback;
-                this.active = false;
-                this.init();
-            }
-            init() {
-                this.canvas.addEventListener('touchstart', (e) => {
-                    if (e.touches.length > 0) {
-                        this.active = true;
-                        this.callback(e.touches[0].clientX, e.touches[0].clientY);
-                    }
-                }, { passive: true });
+  document.getElementById('pilotHint').textContent =
+    mySide === 'right' ? '按住飛機拖曳移動' : '';
+}
 
-                window.addEventListener('touchmove', (e) => {
-                    if (this.active && e.touches.length > 0) {
-                        this.callback(e.touches[0].clientX, e.touches[0].clientY);
-                    }
-                }, { passive: true });
+function triggerSkill(skill) {
+  const now = Date.now();
+  if (now < cooldownUntil[skill.id]) return;
+  cooldownUntil[skill.id] = now + skill.cd;
+  roomRef.child('input/' + mySide + '/skillRequest').set({ id: skill.id, ts: now });
+}
 
-                window.addEventListener('touchend', () => { this.active = false; });
+function updateCooldownUI() {
+  const now = Date.now();
+  const mySkills = SKILLS[mySide];
+  mySkills.forEach(s => {
+    const remain = cooldownUntil[s.id] - now;
+    const btn = skillButtons[s.id];
+    const overlay = btn.querySelector('.cd-overlay');
+    if (remain > 0) {
+      const pct = Math.round((remain / s.cd) * 100);
+      overlay.style.setProperty('--pct', pct + '%');
+      btn.classList.remove('ready');
+    } else {
+      overlay.style.setProperty('--pct', '0%');
+      btn.classList.add('ready');
+    }
+  });
+  requestAnimationFrame(updateCooldownUI);
+}
 
-                this.canvas.addEventListener('mousedown', (e) => {
-                    this.active = true;
-                    this.callback(e.clientX, e.clientY);
-                });
-                window.addEventListener('mousemove', (e) => {
-                    if (this.active) this.callback(e.clientX, e.clientY);
-                });
-                window.addEventListener('mouseup', () => { this.active = false; });
-            }
-        }
+// ===================== 遊戲主體 =====================
 
-        // 飛機渲染類別
-        class Plane {
-            constructor(x, y, role) {
-                this.x = x; this.y = y; this.role = role;
-                this.width = 40; this.height = 50;
-            }
-            setPosition(x, y) { this.x = x; this.y = y; }
-            draw(ctx) {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.strokeStyle = '#38bdf8';
-                ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(0, -this.height / 2);
-                ctx.lineTo(this.width / 2, this.height / 2);
-                ctx.lineTo(0, this.height / 3);
-                ctx.lineTo(-this.width / 2, this.height / 2);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
+let canvas, ctx, W, H;
+let plane = { x:0.5, hp:3 };
+let bullets = [];   // {x,y,type,vx,vy,targetIdx}
+let enemies = [];   // {x,y,frozen,burning,burnUntil}
+let effects = [];   // 視覺特效 {type,x,y,until}
+let score = 0;
+let gameOver = false;
+let gameStartTs = 0;
+let lastEnemySpawn = 0;
+let freezeUntil = 0;
 
-                ctx.fillStyle = '#f8fafc';
-                ctx.font = '16px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🚀', 0, 0);
-                ctx.restore();
-            }
-        }
+function startGame() {
+  lobby.style.display = 'none';
+  gameDiv.style.display = 'block';
+  canvas = document.getElementById('canvas');
+  ctx = canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize', resize);
 
-        // UI 畫面控制
-        class UI {
-            static updateHUD(data) {
-                document.getElementById('hudRoomCode').textContent = data.roomCode || '----';
-                document.getElementById('hudWave').textContent = data.wave || 1;
-                document.getElementById('hudScore').textContent = data.score || 0;
-                document.getElementById('hudFps').textContent = data.fps || 60;
-                document.getElementById('hudPing').textContent = (data.ping || 0) + 'ms';
-            }
-            static showGameUI() {
-                document.getElementById('menuContainer').style.display = 'none';
-                document.getElementById('gameContainer').style.display = 'block';
-            }
-        }
+  buildSkillUI();
+  updateCooldownUI();
+  setupPlaneDrag();
 
-        // 遊戲核心 Engine
-        class Game {
-            constructor() {
-                this.canvas = document.getElementById('gameCanvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.resize();
+  roomRef.child('input/' + mySide).set({ dir:0, fireRequest:0, skillRequest:null });
 
-                this.role = Storage.get('role') || 'player2';
-                this.camera = new Camera();
-                this.particles = new ParticleManager();
-                this.plane = new Plane(this.width / 2, this.height / 2, this.role);
+  if (isHost) {
+    gameStartTs = Date.now();
+    roomRef.child('state').set({ planeX:0.5, hp:3, score:0, enemies:[], bullets:[], effects:[], over:false });
+    requestAnimationFrame(gameLoop);
+  } else {
+    roomRef.child('state').on('value', snap => {
+      const s = snap.val();
+      if (!s) return;
+      plane.x = s.planeX; plane.hp = s.hp; score = s.score;
+      bullets = s.bullets || []; enemies = s.enemies || []; effects = s.effects || [];
+      gameOver = s.over;
+      render();
+      if (gameOver) showResult();
+    });
+  }
+}
 
-                this.lastTime = performance.now();
-                this.fps = 60;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight - 130;
+  canvas.style.height = H + 'px';
+}
 
-                this.initListeners();
-            }
-            resize() {
-                this.width = window.innerWidth;
-                this.height = window.innerHeight;
-                this.canvas.width = this.width;
-                this.canvas.height = this.height;
-            }
-            initListeners() {
-                window.addEventListener('resize', () => this.resize());
+// 只有右邊(主駕)可以按住飛機拖曳移動
+function setupPlaneDrag() {
+  if (mySide !== 'right') return;
+  let dragging = false;
 
-                if (this.role === 'player2') {
-                    this.touch = new TouchManager(this.canvas, (x, y) => {
-                        this.plane.setPosition(x, y);
-                        this.particles.spawn(x, y + 20, '#38bdf8', 2);
-                    });
-                }
+  function isNearPlane(clientX, clientY) {
+    const px = plane.x * W;
+    const py = H * 0.85;
+    return Math.abs(clientX - px) < 45 && Math.abs(clientY - py) < 45;
+  }
 
-                document.getElementById('readyBtn')?.addEventListener('click', () => {
-                    document.getElementById('uiOverlay').style.display = 'none';
-                    if (this.role === 'player1') {
-                        document.getElementById('skillHud').style.display = 'flex';
-                    }
-                });
+  canvas.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    if (isNearPlane(t.clientX, t.clientY)) dragging = true;
+  });
+  canvas.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const ratio = Math.min(Math.max(t.clientX / W, 0.05), 0.95);
+    roomRef.child('input/right/dir').set(ratio);
+  });
+  canvas.addEventListener('touchend', () => { dragging = false; });
 
-                document.getElementById('displayRoomCode').textContent = Storage.get('roomCode') || '';
+  canvas.addEventListener('mousedown', e => { if (isNearPlane(e.clientX, e.clientY)) dragging = true; });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const ratio = Math.min(Math.max(e.clientX / W, 0.05), 0.95);
+    roomRef.child('input/right/dir').set(ratio);
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+}
 
-                document.querySelectorAll('.skill-btn').forEach((btn) => {
-                    btn.addEventListener('click', () => {
-                        this.camera.shake(5, 0.2);
-                        this.particles.spawn(this.plane.x, this.plane.y, '#f43f5e', 15);
-                    });
-                });
-            }
-            start() {
-                this.loop(performance.now());
-            }
-            loop(currentTime) {
-                const dt = (currentTime - this.lastTime) / 1000;
-                this.fps = Math.round(1 / (dt || 0.016));
-                this.lastTime = currentTime;
+// ===================== Host 遊戲邏輯 =====================
 
-                this.update(dt);
-                this.draw();
+let inputCache = { left:{}, right:{} };
+let lastFireHandled = { left:0, right:0 };
+let lastSkillHandled = { left:0, right:0 };
 
-                requestAnimationFrame((t) => this.loop(t));
-            }
-            update(dt) {
-                this.camera.update(dt);
-                this.particles.update(dt);
-                UI.updateHUD({
-                    roomCode: Storage.get('roomCode'),
-                    wave: 1,
-                    score: 0,
-                    fps: this.fps,
-                    ping: 12
-                });
-            }
-            draw() {
-                this.ctx.clearRect(0, 0, this.width, this.height);
-                this.camera.apply(this.ctx);
-                this.plane.draw(this.ctx);
-                this.particles.draw(this.ctx);
-                this.camera.restore(this.ctx);
-            }
-        }
+function gameLoop(ts) {
+  if (!isHost || gameOver) return;
 
-        // 事件監聽與進入流程
-        const network = new Network();
+  roomRef.child('input').once('value', snap => { inputCache = snap.val() || inputCache; });
 
-        document.getElementById('createRoomBtn')?.addEventListener('click', async () => {
-            const nickname = document.getElementById('nicknameInput').value.trim() || 'Player 1';
-            try {
-                const roomCode = await network.createRoom(nickname);
-                Storage.set('roomCode', roomCode);
-                Storage.set('role', 'player1');
-                Storage.set('nickname', nickname);
-                UI.showGameUI();
-                const game = new Game();
-                game.start();
-            } catch (e) {
-                alert('建立房間失敗: ' + e.message);
-            }
-        });
+  // 移動：只有 right 的 dir 有效（絕對比例位置）
+  if (inputCache.right && typeof inputCache.right.dir === 'number' && inputCache.right.dir > 0) {
+    plane.x += (inputCache.right.dir - plane.x) * 0.35;
+  }
+  plane.x = Math.min(Math.max(plane.x, 0.05), 0.95);
 
-        document.getElementById('joinRoomBtn')?.addEventListener('click', async () => {
-            const nickname = document.getElementById('nicknameInput').value.trim() || 'Player 2';
-            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-            if (!roomCode) {
-                alert('請輸入房號');
-                return;
-            }
-            try {
-                await network.joinRoom(roomCode, nickname);
-                Storage.set('roomCode', roomCode);
-                Storage.set('role', 'player2');
-                Storage.set('nickname', nickname);
-                UI.showGameUI();
-                const game = new Game();
-                game.start();
-            } catch (e) {
-                alert('加入房間失敗: ' + e.message);
-            }
-        });
-    </script>
+  // 左邊技能
+  const leftSkill = inputCache.left && inputCache.left.skillRequest;
+  if (leftSkill && leftSkill.ts > lastSkillHandled.left) {
+    lastSkillHandled.left = leftSkill.ts;
+    applyLeftSkill(leftSkill.id);
+  }
+
+  // 右邊技能
+  const rightSkill = inputCache.right && inputCache.right.skillRequest;
+  if (rightSkill && rightSkill.ts > lastSkillHandled.right) {
+    lastSkillHandled.right = rightSkill.ts;
+    applyRightSkill(rightSkill.id);
+  }
+
+  const now = Date.now();
+  const frozen = now < freezeUntil;
+
+  // 子彈移動
+  bullets.forEach(b => {
+    if (b.type === 'homing') {
+      const target = findNearestEnemy(b.x, b.y);
+      if (target) {
+        const dx = target.x - b.x, dy = target.y - b.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        b.x += (dx / dist) * 0.018;
+        b.y += (dy / dist) * 0.018;
+      } else {
+        b.y -= 0.02;
+      }
+    } else {
+      b.y -= (b.speed || 0.02);
+    }
+  });
+  bullets = bullets.filter(b => b.y > -0.1 && b.y < 1.1);
+
+  // 難度隨時間漸進：生成間隔從 1200ms 降到最低 500ms
+  const elapsed = now - gameStartTs;
+  const spawnInterval = Math.max(500, 1200 - elapsed / 60);
+  if (ts - lastEnemySpawn > spawnInterval) {
+    lastEnemySpawn = ts;
+    enemies.push({ x: 0.1 + Math.random()*0.8, y:-0.05, frozen:false, burning:false });
+  }
+
+  // 敵人移動速度也隨時間微幅提升
+  const enemySpeed = Math.min(0.012, 0.006 + elapsed / 400000);
+  if (!frozen) {
+    enemies.forEach(en => { if (!en.frozen) en.y += enemySpeed; });
+  }
+
+  // 燃燒中的敵人：burnUntil 到了就移除並加分
+  for (let i = enemies.length-1; i>=0; i--) {
+    if (enemies[i].burning && now > enemies[i].burnUntil) {
+      enemies.splice(i,1); score += 15;
+    }
+  }
+
+  // 子彈打敵人（含大火球大範圍、水龍彈穿透）
+  for (let j = bullets.length-1; j>=0; j--) {
+    const b = bullets[j];
+    const radius = b.type === 'fireball' ? 0.09 : (b.type === 'dragon' ? 0.07 : 0.04);
+    let hitOne = false;
+    for (let i = enemies.length-1; i>=0; i--) {
+      if (enemies[i].burning) continue;
+      const dx = enemies[i].x - b.x, dy = enemies[i].y - b.y;
+      if (Math.hypot(dx,dy) < radius) {
+        enemies.splice(i,1);
+        score += 10;
+        hitOne = true;
+        if (b.type !== 'dragon') break; // 水龍彈可以穿透打多隻，其餘擊中一隻就消失
+      }
+    }
+    if (hitOne && b.type !== 'dragon') bullets.splice(j,1);
+  }
+
+  // 敵人撞到飛機
+  for (let i = enemies.length-1; i>=0; i--) {
+    if (!enemies[i].burning && Math.abs(enemies[i].x - plane.x) < 0.05 && enemies[i].y > 0.8) {
+      enemies.splice(i,1);
+      plane.hp -= 1;
+    }
+  }
+
+  effects = effects.filter(e => now < e.until);
+
+  if (plane.hp <= 0) gameOver = true;
+
+  roomRef.child('state').set({
+    planeX: plane.x, hp: plane.hp, score, enemies, bullets, effects, over: gameOver
+  });
+
+  render();
+  if (gameOver) { showResult(); return; }
+  requestAnimationFrame(gameLoop);
+}
+
+function findNearestEnemy(x, y) {
+  let best = null, bestDist = Infinity;
+  enemies.forEach(en => {
+    if (en.burning) return;
+    const d = Math.hypot(en.x-x, en.y-y);
+    if (d < bestDist) { bestDist = d; best = en; }
+  });
+  return best;
+}
+
+function applyLeftSkill(id) {
+  const now = Date.now();
+  if (id === 'fireball') {
+    bullets.push({ x:plane.x, y:0.82, type:'fireball', speed:0.012 });
+  } else if (id === 'homing') {
+    bullets.push({ x:plane.x, y:0.82, type:'homing' });
+  } else if (id === 'dragon') {
+    bullets.push({ x:plane.x, y:0.82, type:'dragon', speed:0.016 });
+    effects.push({ type:'dragon', x:plane.x, y:0.82, until: now+800 });
+  }
+}
+
+function applyRightSkill(id) {
+  const now = Date.now();
+  if (id === 'tsukuyomi') {
+    freezeUntil = now + 2500;
+    effects.push({ type:'freeze', x:0.5, y:0.4, until: now+400 });
+  } else if (id === 'kamui') {
+    // 移除最靠近飛機（最下方）的一隻小怪
+    let target = null, maxY = -1;
+    enemies.forEach(en => { if (!en.burning && en.y > maxY) { maxY = en.y; target = en; } });
+    if (target) {
+      effects.push({ type:'kamui', x:target.x, y:target.y, until: now+400 });
+      enemies = enemies.filter(en => en !== target);
+      score += 10;
+    }
+  } else if (id === 'amaterasu') {
+    let target = null, maxY = -1;
+    enemies.forEach(en => { if (!en.burning && en.y > maxY) { maxY = en.y; target = en; } });
+    if (target) { target.burning = true; target.burnUntil = now + 1000; }
+  }
+}
+
+// ===================== 畫面渲染 =====================
+
+function render() {
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0,0,W,H);
+
+  document.getElementById('hpText').textContent = 'HP: ' + plane.hp;
+  document.getElementById('scoreText').textContent = '分數: ' + score;
+
+  // 飛機：導航圖標造型（圓角三角箭頭）
+  const px = plane.x*W, py = H*0.85;
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.fillStyle = '#3a7bd5';
+  ctx.beginPath();
+  ctx.moveTo(0, -22);
+  ctx.quadraticCurveTo(16, 10, 6, 10);
+  ctx.quadraticCurveTo(0, 4, -6, 10);
+  ctx.quadraticCurveTo(-16, 10, 0, -22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#dff0ff';
+  ctx.beginPath();
+  ctx.arc(0, -4, 4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // 子彈
+  bullets.forEach(b => {
+    ctx.beginPath();
+    if (b.type === 'fireball') { ctx.fillStyle = '#ff6a1a'; ctx.arc(b.x*W, b.y*H, 14, 0, Math.PI*2); }
+    else if (b.type === 'homing') { ctx.fillStyle = '#ffd166'; ctx.arc(b.x*W, b.y*H, 8, 0, Math.PI*2); }
+    else if (b.type === 'dragon') { ctx.fillStyle = '#2ec4ff'; ctx.arc(b.x*W, b.y*H, 12, 0, Math.PI*2); }
+    else { ctx.fillStyle = '#00e5ff'; ctx.rect(b.x*W-3, b.y*H-8, 6, 16); }
+    ctx.fill();
+  });
+
+  // 敵人（燃燒中變紅橘漸層）
+  enemies.forEach(en => {
+    ctx.beginPath();
+    ctx.fillStyle = en.burning ? '#ff3d00' : (en.frozen ? '#8ecae6' : '#e24b4a');
+    ctx.arc(en.x*W, en.y*H, 16, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // 特效
+  const now = Date.now();
+  effects.forEach(e => {
+    const life = (e.until - now) / 400;
+    ctx.globalAlpha = Math.max(0, life);
+    if (e.type === 'freeze') {
+      ctx.strokeStyle = '#8ecae6'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(W/2, H*0.4, 60*(1.5-life), 0, Math.PI*2); ctx.stroke();
+    } else if (e.type === 'kamui') {
+      ctx.strokeStyle = '#b39ddb'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x*W, e.y*H, 20*(1.5-life), 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
+function showResult() {
+  const overlay = document.getElementById('resultOverlay');
+  document.getElementById('resultText').textContent = '飛機被擊落了（分數 ' + score + '）';
+  overlay.style.display = 'flex';
+}
+
+document.getElementById('btnRestart').onclick = () => location.reload();
+</script>
 </body>
 </html>
